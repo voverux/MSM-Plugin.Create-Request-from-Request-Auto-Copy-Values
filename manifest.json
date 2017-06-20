@@ -1,0 +1,28 @@
+﻿{
+    "Name": "MarvalBaltic.Plugins.RequestFromRequestAutoCopyValues",
+    "Organisation": "Marval Baltic",
+    "DisplayName": "Request from Request Auto Copy Values",
+    "Icon": "img/new_request_from_request_16.png",
+    "Version": "1.0.0",
+    "SupportedVersions": [
+        "14.6.1",
+        "14.6.0",
+        "14.5.1",
+        "14.5.0",
+        "14.4.3",
+        "14.4.2",
+        "14.4.1",
+        "14.4.0"
+    ],
+    "Pages": [
+        "Request.aspx"
+    ],
+    "HtmlImportFile": "request_from_request_auto.html",
+    "TagName": "marval-baltic-plugins-request-from-request-auto",
+  "GlobalSettings": [
+    "Plugin Rules Action Message",
+    "MSM WSE Address",
+    "MSM WSE User Name",
+    "MSM WSE Password"
+  ]
+}

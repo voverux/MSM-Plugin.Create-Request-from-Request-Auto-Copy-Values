@@ -1,0 +1,195 @@
+﻿<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<script src="Template.js"></script>
+<script>
+    (function () {
+
+        var MarvalSoftware = window.top.MarvalSoftware;
+        var $ = window.top.$;
+
+        MarvalSoftware.Plugins.define("marval-baltic-plugins-request-from-request-auto",
+            {
+                _pluginId: "marval-baltic-plugins-request-from-request-auto",
+                _pluginPath: function () { return this.attributes["data-pluginpath"].value;},
+                _pluginHandlerRequest: null,
+				_reqTypeId: null,
+                _times2TryFinding: 100,
+                _period2TryFinding: 50,
+                _timesTrying2Find: 0,
+				_pluginRules: {
+                    "rules": [
+                        {
+							"fromReqTypeId": 1,
+							"toReqTypeIds": [1,2,6],
+                            "copyFieldIds": [1,2,3],
+							"autoSubmit": false
+                        },
+                        {
+							"fromReqTypeId": 2,
+							"toReqTypeIds": [1,2,6],
+                            "copyFieldIds": [1,2,3],
+							"autoSubmit": false
+                        }
+                    ]
+                },
+				// Field IDs
+				// 1 - Assignee
+				// 2 - Tracker
+				// 3 - Priority
+				// 4 - Impact
+				// 5 - Urgency
+				// 8 - Customer
+				// 9 - Contact
+				// 10 - Service
+				// 11 - Classifications
+				// 12 - Description
+				// 16 - Source
+
+                _getPluginPath: function () {
+                    return this.attributes["data-pluginpath"].value;
+                },
+
+                init: function () {
+					if(!this._getCurrentRequestTypeId()) return;
+                    this._getActionMessageKey(
+						this,
+                        this._getActionMessageContent
+                    );					
+                },
+
+                _getCurrentRequestTypeId: function () {
+					var page = MarvalSoftware.UI.Controls.ScriptManager.getInstance().getControl("__Page");
+					if(!page) return false;
+					this._reqTypeId = page._requestTypeId;
+					return true;
+                },				
+				
+                _getActionMessageKey: function (plugin, callbackFunction) {
+					if (plugin._pluginHandlerRequest) {
+                        plugin._pluginHandlerRequest.abort();
+                        plugin._pluginHandlerRequest = null;
+                    }
+                    plugin._pluginHandlerRequest = $.ajax({
+                        type: "GET",
+                        url: plugin._getPluginPath() + "handler/RequestFromRequestAutoHandler.ashx",
+                        contentType: "application/json; charset=utf-8",
+                        dataType: "json",
+                        success: function (result) {
+                            callbackFunction(plugin, result);
+                        }.bind(plugin),
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            if (xhr.status > 0) plugin._showErrorMessage(xhr.status + '\n' + thrownError);
+                        }.bind(plugin)
+                    });
+                },
+
+                _getActionMessageContent: function (plugin, messageKey) {
+                    if (messageKey && messageKey.length > 0) {
+                        if (plugin._pluginHandlerRequest) {
+                            plugin._pluginHandlerRequest.abort();
+                            plugin._pluginHandlerRequest = null;
+                        }
+                        plugin._pluginHandlerRequest = $.ajax({
+                            type: "GET",
+                            url: plugin._getPluginPath() + "handler/RequestFromRequestAutoHandler.ashx?ActionMessageKey=" + messageKey,
+                            contentType: "application/json; charset=utf-8",
+                            dataType: "json",
+                            success: function (result) {
+                                if (result) {
+                                    plugin._pluginRules = JSON.parse(result);
+                                    if (plugin._pluginRules && plugin._pluginRules.rules && plugin._pluginRules.rules.length > 0) {
+                                        plugin._processQuickMenuItems();
+                                    }
+                                }
+                            }.bind(plugin),
+                            error: function (xhr, ajaxOptions, thrownError) {
+                                if (xhr.status > 0) plugin._showErrorMessage(xhr.status + '\n' + thrownError);
+                            }.bind(plugin)
+                        });
+                    }
+                },
+
+                _processQuickMenuItems: function () {
+                    var RequestCopyMenu = $(".newRequestFromRequest > .menu");	
+                    if(RequestCopyMenu.length) {
+                        RequestCopyMenuSubItems = RequestCopyMenu[0].children;
+                        for(var i=0; i<RequestCopyMenuSubItems.length; i++) {
+                            var elm = RequestCopyMenuSubItems[i].children[0];
+                            if(elm) this._attachEvent(elm, "click", RequestCopyMenuSubItems[i].getAttribute("argument"), this);
+                        }
+                    }
+                },
+
+                _attachEvent: function (elmt, event, newReqTypeId, plugin) {
+                    if (elmt) {
+                        if (elmt.addEventListener) {
+                            elmt.addEventListener(event, function (e) {
+                                plugin._extraEvent(plugin, newReqTypeId);
+                            }
+                            , false);
+                        }
+                        else if (elmt.attachEvent) {
+                            elmt.attachEvent("on" + event, function (e) {
+                                plugin._extraEvent(plugin, newReqTypeId);
+                            });
+                        }
+                    }
+                },
+
+                _extraEvent: function (plugin, newReqTypeId) {
+					var found=false;
+                    var dlgInnerBox = $(".createNewRequestFromRequestMessageBox");
+					for(var i=0;i<dlgInnerBox.length;i++){
+						var dlgBox = dlgInnerBox[i].parentElement.parentElement.parentElement.parentElement;
+						if(dlgBox.style.visibility=="hidden") {
+							$(dlgBox).remove();
+						}
+						else {
+							found=true;
+							plugin._processActions(dlgBox, newReqTypeId);
+						}
+					}
+                    if(!found) {
+                        plugin._timesTrying2Find+=1;
+                        if(plugin._timesTrying2Find<plugin._times2TryFinding) setTimeout(function(){plugin._extraEvent(plugin,newReqTypeId);}, plugin._period2TryFinding);
+                        // else alert('not found in time...'+ plugin._timesTrying2Find);
+                    }
+                },
+                
+                _processActions: function (dlgBox, newReqTypeId) {
+					for (var i = 0; i < this._pluginRules.rules.length; i++) {
+						var arr1 = this._pluginRules.rules[i].toReqTypeIds;
+						if(this._pluginRules.rules[i].fromReqTypeId==this._reqTypeId && $.inArray(parseInt(newReqTypeId), this._pluginRules.rules[i].toReqTypeIds)>=0){
+							this._checkFields(dlgBox,this._pluginRules.rules[i].copyFieldIds);
+							if(this._pluginRules.rules[i].autoSubmit) this._submitForm(dlgBox);
+						}
+					}
+                },
+				
+				_checkFields(dlgBox,fieldIds){
+					if(Object.prototype.toString.call(fieldIds)!='[object Array]') fieldIds = [].push(fieldIds);
+					for (var i=0;i<fieldIds.length;i++){
+						var jres = $(dlgBox).find("input#"+fieldIds[i]);
+						if(jres.length) $(jres[0]).prop('checked', true);
+					}
+				},
+				
+				_submitForm(dlgBox){
+					var jres = $(dlgBox).find("button[identifier='0']");
+					if(jres.length) $(jres[0]).click();
+				},
+				
+                _showErrorMessage: function (errorMessage) {
+                    MarvalSoftware.UI.MessageBox.show(
+                        "Plugin Error",
+                        errorMessage + " [" + this._pluginId + "]",
+                        MarvalSoftware.UI.MessageBox.Types.ERROR,
+                        null,
+                        null,
+                        400
+                    );
+                }
+
+            });
+
+    })();
+</script>
