@@ -2,7 +2,7 @@
 
 This plugin extends MSM functionality to create a new request from the existing request.
 New MSM system versions (since 14.4?) allows user manually to select request field values to be copied to new request.
-Actually not every user is happy about this extra task/choise to be made. Very often it's even unclear what values should be selected in the extra dialog window.
+We have noticed that some system users are rather more frustrated than happy to do this extra task/choise. Very often it's even unclear what values should be selected in the extra dialog window.
 So the plugin allows to configure some rules (by request types currently) and automatically apply field values that needs to be copied from initial request to the new one.
 No extra step is required from user in this case.
 
